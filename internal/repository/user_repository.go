@@ -2,8 +2,8 @@ package repository
 
 import (
 	"context"
-	"internal/domain"
 
+	"github.com/yesetoda/Sera_Ale/internal/domain"
 	"gorm.io/gorm"
 )
 
