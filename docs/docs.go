@@ -15,9 +15,14 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/company/jobs": {
+        "/applicant/applications": {
             "get": {
-                "description": "Company views their posted jobs",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Applicant views their applications. Requires Bearer token in Authorization header.",
                 "consumes": [
                     "application/json"
                 ],
@@ -25,9 +30,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Jobs"
+                    "Applications"
                 ],
-                "summary": "View my posted jobs",
+                "summary": "Track my applications",
                 "parameters": [
                     {
                         "type": "integer",
@@ -44,17 +49,23 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "List of applications",
                         "schema": {
-                            "$ref": "#/definitions/domain.PaginatedResponse"
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
             }
         },
-        "/jobs": {
+        "/applicant/jobs": {
             "get": {
-                "description": "Applicant searches jobs with filters and pagination",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Applicant searches jobs with filters and pagination (requires Bearer token)",
                 "consumes": [
                     "application/json"
                 ],
@@ -68,19 +79,19 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Title filter",
+                        "description": "Job title",
                         "name": "title",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Location filter",
+                        "description": "Location",
                         "name": "location",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Company name filter",
+                        "description": "Company name",
                         "name": "company_name",
                         "in": "query"
                     },
@@ -105,9 +116,134 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
+            }
+        },
+        "/company/applications/job": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Company views applications for their job. Requires Bearer token in Authorization header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "View applications for a job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "job_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of applications",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized or not job owner",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/company/applications/{id}/status": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Company updates application status. Requires Bearer token in Authorization header.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Applications"
+                ],
+                "summary": "Update application status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New status",
+                        "name": "status",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.updateStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Status updated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Validation or update error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "403": {
+                        "description": "Unauthorized or not job owner",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/company/jobs": {
             "post": {
-                "description": "Company posts a new job",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Company posts a new job (requires Bearer token)",
                 "consumes": [
                     "application/json"
                 ],
@@ -120,8 +256,8 @@ const docTemplate = `{
                 "summary": "Create job",
                 "parameters": [
                     {
-                        "description": "Job info",
-                        "name": "job",
+                        "description": "Job request",
+                        "name": "jobRequest",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -145,9 +281,139 @@ const docTemplate = `{
                 }
             }
         },
+        "/company/jobs/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Company updates their job (requires Bearer token)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Jobs"
+                ],
+                "summary": "Update job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Job request",
+                        "name": "jobRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.jobRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/domain.BaseResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Company deletes their job (requires Bearer token)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Jobs"
+                ],
+                "summary": "Delete job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.BaseResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/domain.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/jobs": {
+            "get": {
+                "description": "List all company jobs (public)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Jobs"
+                ],
+                "summary": "List all company jobs",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PaginatedResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/jobs/{id}": {
             "get": {
-                "description": "Get job details by ID",
+                "description": "Get job details by ID (public)",
                 "consumes": [
                     "application/json"
                 ],
@@ -181,9 +447,11 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "put": {
-                "description": "Company updates their job",
+            }
+        },
+        "/login": {
+            "post": {
+                "description": "Login with email and password",
                 "consumes": [
                     "application/json"
                 ],
@@ -191,24 +459,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Jobs"
+                    "Auth"
                 ],
-                "summary": "Update job",
+                "summary": "Login with email and password",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Job ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Job info",
-                        "name": "job",
+                        "description": "Login request",
+                        "name": "loginRequest",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.jobRequest"
+                            "$ref": "#/definitions/handler.loginRequest"
                         }
                     }
                 ],
@@ -226,9 +487,55 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "delete": {
-                "description": "Company deletes their job",
+            }
+        },
+        "/protected": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Validates JWT Bearer token and sets user_id and role (role name) in context",
+                "summary": "JWT Authentication Middleware",
+                "responses": {
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/protected/{role}": {
+            "get": {
+                "description": "Allows access only to users with the specified role name",
+                "summary": "Role-based Access Middleware",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role (applicant or company)",
+                        "name": "role",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/signup": {
+            "post": {
+                "description": "Register as a new user (company or applicant)",
                 "consumes": [
                     "application/json"
                 ],
@@ -236,16 +543,18 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Jobs"
+                    "Auth"
                 ],
-                "summary": "Delete job",
+                "summary": "Register as a new user (company or applicant)",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Job ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
+                        "description": "Signup request",
+                        "name": "signupRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.signupRequest"
+                        }
                     }
                 ],
                 "responses": {
@@ -257,6 +566,40 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/domain.BaseResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the authenticated user's profile (requires Bearer token)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get current user profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.UserSwagger"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/domain.BaseResponse"
                         }
@@ -311,6 +654,28 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.UserSwagger": {
+            "description": "User entity Role: \"applicant\" or \"company\" Password is always hashed Example: {\"id\": \"uuid\", \"name\": \"John Doe\", \"email\": \"john@example.com\", \"role\": \"applicant\"}",
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "john@example.com"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "uuid"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "John Doe"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "applicant"
+                }
+            }
+        },
         "handler.jobRequest": {
             "type": "object",
             "properties": {
@@ -324,6 +689,50 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "handler.loginRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.signupRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.updateStatusRequest": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Provide your JWT token in the format: Bearer {token}",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

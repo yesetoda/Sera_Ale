@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yesetoda/Sera_Ale/internal/app"
@@ -21,20 +22,20 @@ type applyRequest struct {
 	CoverLetter string `form:"cover_letter" json:"cover_letter"`
 }
 
-// Apply godoc
-// @Summary Apply for a job
-// @Description Applicant applies for a job with resume upload
-// @Tags Applications
-// @Accept multipart/form-data
-// @Produce json
-// @Param job_id formData string true "Job ID"
-// @Param cover_letter formData string false "Cover letter"
-// @Param resume formData file true "Resume PDF"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// OpenAPI3: summary: Apply for a job
+// OpenAPI3: description: Applicant applies for a job with resume upload (requires Bearer token)
+// OpenAPI3: tags: [Applications]
+// OpenAPI3: security: BearerAuth
+// OpenAPI3: requestBody: multipart/form-data (job_id, cover_letter, resume)
+// OpenAPI3: responses: 200=BaseResponse, 400=BaseResponse
 // @Security BearerAuth
-// @Router /applicant/applications [post]
+// Requires Bearer token
 func (h *ApplicationHandler) Apply(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" || !strings.HasPrefix(token, "Bearer ") {
+		c.JSON(401, gin.H{"success": false, "message": "Missing or invalid Bearer token in Authorization header. Please provide: Authorization: Bearer <token>"})
+		return
+	}
 	applicantID := c.GetString("user_id")
 	var req applyRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -57,16 +58,22 @@ func (h *ApplicationHandler) Apply(c *gin.Context) {
 
 // TrackApplications godoc
 // @Summary Track my applications
-// @Description Applicant views their applications
+// @Description Applicant views their applications. Requires Bearer token in Authorization header.
 // @Tags Applications
 // @Accept json
 // @Produce json
 // @Param page query int false "Page number"
 // @Param size query int false "Page size"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} map[string]interface{} "List of applications"
 // @Security BearerAuth
 // @Router /applicant/applications [get]
+// Requires Bearer token
 func (h *ApplicationHandler) TrackApplications(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" || !strings.HasPrefix(token, "Bearer ") {
+		c.JSON(401, gin.H{"success": false, "message": "Missing or invalid Bearer token in Authorization header. Please provide: Authorization: Bearer <token>"})
+		return
+	}
 	applicantID := c.GetString("user_id")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
@@ -80,17 +87,24 @@ func (h *ApplicationHandler) TrackApplications(c *gin.Context) {
 
 // GetApplicationsForJob godoc
 // @Summary View applications for a job
-// @Description Company views applications for their job
+// @Description Company views applications for their job. Requires Bearer token in Authorization header.
 // @Tags Applications
 // @Accept json
 // @Produce json
 // @Param job_id query string true "Job ID"
 // @Param page query int false "Page number"
 // @Param size query int false "Page size"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} map[string]interface{} "List of applications"
+// @Failure 403 {object} map[string]interface{} "Unauthorized or not job owner"
 // @Security BearerAuth
 // @Router /company/applications/job [get]
+// Requires Bearer token
 func (h *ApplicationHandler) GetApplicationsForJob(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" || !strings.HasPrefix(token, "Bearer ") {
+		c.JSON(401, gin.H{"success": false, "message": "Missing or invalid Bearer token in Authorization header. Please provide: Authorization: Bearer <token>"})
+		return
+	}
 	companyID := c.GetString("user_id")
 	jobID := c.Query("job_id")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -109,17 +123,24 @@ type updateStatusRequest struct {
 
 // UpdateStatus godoc
 // @Summary Update application status
-// @Description Company updates application status
+// @Description Company updates application status. Requires Bearer token in Authorization header.
 // @Tags Applications
 // @Accept json
 // @Produce json
 // @Param id path string true "Application ID"
 // @Param status body updateStatusRequest true "New status"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
+// @Success 200 {object} map[string]interface{} "Status updated"
+// @Failure 400 {object} map[string]interface{} "Validation or update error"
+// @Failure 403 {object} map[string]interface{} "Unauthorized or not job owner"
 // @Security BearerAuth
 // @Router /company/applications/{id}/status [put]
+// Requires Bearer token
 func (h *ApplicationHandler) UpdateStatus(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" || !strings.HasPrefix(token, "Bearer ") {
+		c.JSON(401, gin.H{"success": false, "message": "Missing or invalid Bearer token in Authorization header. Please provide: Authorization: Bearer <token>"})
+		return
+	}
 	companyID := c.GetString("user_id")
 	id := c.Param("id")
 	var req updateStatusRequest

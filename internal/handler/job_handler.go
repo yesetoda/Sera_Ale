@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -26,16 +27,21 @@ type jobRequest struct {
 
 // CreateJob godoc
 // @Summary Create job
-// @Description Company posts a new job
+// @Description Company posts a new job (requires Bearer token)
 // @Tags Jobs
 // @Accept json
 // @Produce json
-// @Param job body jobRequest true "Job info"
+// @Param jobRequest body jobRequest true "Job request"
 // @Success 200 {object} domain.BaseResponse
 // @Failure 400 {object} domain.BaseResponse
 // @Security BearerAuth
-// @Router /jobs [post]
+// @Router /company/jobs [post]
 func (h *JobHandler) CreateJob(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" || !strings.HasPrefix(token, "Bearer ") {
+		c.JSON(401, gin.H{"success": false, "message": "Missing or invalid Bearer token in Authorization header. Please provide: Authorization: Bearer <token>"})
+		return
+	}
 	var req jobRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, domain.BaseResponse{Success: false, Message: "Invalid input", Errors: []string{"Invalid JSON"}})
@@ -66,17 +72,22 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 
 // UpdateJob godoc
 // @Summary Update job
-// @Description Company updates their job
+// @Description Company updates their job (requires Bearer token)
 // @Tags Jobs
 // @Accept json
 // @Produce json
 // @Param id path string true "Job ID"
-// @Param job body jobRequest true "Job info"
+// @Param jobRequest body jobRequest true "Job request"
 // @Success 200 {object} domain.BaseResponse
 // @Failure 400 {object} domain.BaseResponse
 // @Security BearerAuth
-// @Router /jobs/{id} [put]
+// @Router /company/jobs/{id} [put]
 func (h *JobHandler) UpdateJob(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" || !strings.HasPrefix(token, "Bearer ") {
+		c.JSON(401, gin.H{"success": false, "message": "Missing or invalid Bearer token in Authorization header. Please provide: Authorization: Bearer <token>"})
+		return
+	}
 	id := c.Param("id")
 	var req jobRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -105,7 +116,7 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 
 // DeleteJob godoc
 // @Summary Delete job
-// @Description Company deletes their job
+// @Description Company deletes their job (requires Bearer token)
 // @Tags Jobs
 // @Accept json
 // @Produce json
@@ -113,8 +124,13 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 // @Success 200 {object} domain.BaseResponse
 // @Failure 400 {object} domain.BaseResponse
 // @Security BearerAuth
-// @Router /jobs/{id} [delete]
+// @Router /company/jobs/{id} [delete]
 func (h *JobHandler) DeleteJob(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" || !strings.HasPrefix(token, "Bearer ") {
+		c.JSON(401, gin.H{"success": false, "message": "Missing or invalid Bearer token in Authorization header. Please provide: Authorization: Bearer <token>"})
+		return
+	}
 	id := c.Param("id")
 	userID := c.GetString("user_id")
 	if err := h.App.DeleteJob(c.Request.Context(), id, userID); err != nil {
@@ -126,15 +142,14 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 
 // GetJob godoc
 // @Summary Get job details
-// @Description Get job details by ID
+// @Description Get job details by ID (public)
 // @Tags Jobs
 // @Accept json
 // @Produce json
 // @Param id path string true "Job ID"
 // @Success 200 {object} domain.BaseResponse
 // @Failure 404 {object} domain.BaseResponse
-// @Security BearerAuth
-// @Router /applicant/jobs/{id} [get]
+// @Router /jobs/{id} [get]
 func (h *JobHandler) GetJob(c *gin.Context) {
 	id := c.Param("id")
 	job, err := h.App.GetJobByID(c.Request.Context(), id)
@@ -147,19 +162,24 @@ func (h *JobHandler) GetJob(c *gin.Context) {
 
 // SearchJobs godoc
 // @Summary Search jobs
-// @Description Applicant searches jobs with filters and pagination
+// @Description Applicant searches jobs with filters and pagination (requires Bearer token)
 // @Tags Jobs
 // @Accept json
 // @Produce json
-// @Param title query string false "Title filter"
-// @Param location query string false "Location filter"
-// @Param company_name query string false "Company name filter"
+// @Param title query string false "Job title"
+// @Param location query string false "Location"
+// @Param company_name query string false "Company name"
 // @Param page query int false "Page number"
 // @Param size query int false "Page size"
 // @Success 200 {object} domain.PaginatedResponse
 // @Security BearerAuth
 // @Router /applicant/jobs [get]
 func (h *JobHandler) SearchJobs(c *gin.Context) {
+	token := c.GetHeader("Authorization")
+	if token == "" || !strings.HasPrefix(token, "Bearer ") {
+		c.JSON(401, gin.H{"success": false, "message": "Missing or invalid Bearer token in Authorization header. Please provide: Authorization: Bearer <token>"})
+		return
+	}
 	filters := map[string]interface{}{}
 	if title := c.Query("title"); title != "" {
 		filters["title"] = title
@@ -188,21 +208,20 @@ func (h *JobHandler) SearchJobs(c *gin.Context) {
 }
 
 // GetJobsByCompany godoc
-// @Summary View my posted jobs
-// @Description Company views their posted jobs
+// @Summary List all company jobs
+// @Description List all company jobs (public)
 // @Tags Jobs
 // @Accept json
 // @Produce json
 // @Param page query int false "Page number"
 // @Param size query int false "Page size"
 // @Success 200 {object} domain.PaginatedResponse
-// @Security BearerAuth
-// @Router /company/jobs [get]
+// @Router /jobs [get]
 func (h *JobHandler) GetJobsByCompany(c *gin.Context) {
-	companyID := c.GetString("user_id")
+	// Public endpoint: do not check for Authorization header
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
-	jobs, total, err := h.App.GetJobsByCompany(c.Request.Context(), companyID, page, size)
+	jobs, total, err := h.App.GetJobsByCompany(c.Request.Context(), "", page, size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, domain.PaginatedResponse{Success: false, Message: "Failed to fetch jobs"})
 		return

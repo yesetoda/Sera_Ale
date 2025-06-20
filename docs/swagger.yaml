@@ -30,6 +30,24 @@ definitions:
       total_size:
         type: integer
     type: object
+  handler.UserSwagger:
+    description: 'User entity Role: "applicant" or "company" Password is always hashed
+      Example: {"id": "uuid", "name": "John Doe", "email": "john@example.com", "role":
+      "applicant"}'
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      id:
+        example: uuid
+        type: string
+      name:
+        example: John Doe
+        type: string
+      role:
+        example: applicant
+        type: string
+    type: object
   handler.jobRequest:
     properties:
       description:
@@ -39,6 +57,29 @@ definitions:
       title:
         type: string
     type: object
+  handler.loginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  handler.signupRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      role:
+        type: string
+    type: object
+  handler.updateStatusRequest:
+    properties:
+      status:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -46,11 +87,12 @@ info:
   title: Sera Ale Job Board API
   version: "1.0"
 paths:
-  /company/jobs:
+  /applicant/applications:
     get:
       consumes:
       - application/json
-      description: Company views their posted jobs
+      description: Applicant views their applications. Requires Bearer token in Authorization
+        header.
       parameters:
       - description: Page number
         in: query
@@ -64,27 +106,31 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: List of applications
           schema:
-            $ref: '#/definitions/domain.PaginatedResponse'
-      summary: View my posted jobs
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Track my applications
       tags:
-      - Jobs
-  /jobs:
+      - Applications
+  /applicant/jobs:
     get:
       consumes:
       - application/json
-      description: Applicant searches jobs with filters and pagination
+      description: Applicant searches jobs with filters and pagination (requires Bearer
+        token)
       parameters:
-      - description: Title filter
+      - description: Job title
         in: query
         name: title
         type: string
-      - description: Location filter
+      - description: Location
         in: query
         name: location
         type: string
-      - description: Company name filter
+      - description: Company name
         in: query
         name: company_name
         type: string
@@ -103,17 +149,99 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/domain.PaginatedResponse'
+      security:
+      - BearerAuth: []
       summary: Search jobs
       tags:
       - Jobs
+  /company/applications/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Company updates application status. Requires Bearer token in Authorization
+        header.
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New status
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/handler.updateStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Status updated
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Validation or update error
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Unauthorized or not job owner
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update application status
+      tags:
+      - Applications
+  /company/applications/job:
+    get:
+      consumes:
+      - application/json
+      description: Company views applications for their job. Requires Bearer token
+        in Authorization header.
+      parameters:
+      - description: Job ID
+        in: query
+        name: job_id
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of applications
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Unauthorized or not job owner
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: View applications for a job
+      tags:
+      - Applications
+  /company/jobs:
     post:
       consumes:
       - application/json
-      description: Company posts a new job
+      description: Company posts a new job (requires Bearer token)
       parameters:
-      - description: Job info
+      - description: Job request
         in: body
-        name: job
+        name: jobRequest
         required: true
         schema:
           $ref: '#/definitions/handler.jobRequest'
@@ -128,14 +256,16 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/domain.BaseResponse'
+      security:
+      - BearerAuth: []
       summary: Create job
       tags:
       - Jobs
-  /jobs/{id}:
+  /company/jobs/{id}:
     delete:
       consumes:
       - application/json
-      description: Company deletes their job
+      description: Company deletes their job (requires Bearer token)
       parameters:
       - description: Job ID
         in: path
@@ -153,13 +283,72 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/domain.BaseResponse'
+      security:
+      - BearerAuth: []
       summary: Delete job
       tags:
       - Jobs
+    put:
+      consumes:
+      - application/json
+      description: Company updates their job (requires Bearer token)
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Job request
+        in: body
+        name: jobRequest
+        required: true
+        schema:
+          $ref: '#/definitions/handler.jobRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Update job
+      tags:
+      - Jobs
+  /jobs:
     get:
       consumes:
       - application/json
-      description: Get job details by ID
+      description: List all company jobs (public)
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PaginatedResponse'
+      summary: List all company jobs
+      tags:
+      - Jobs
+  /jobs/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get job details by ID (public)
       parameters:
       - description: Job ID
         in: path
@@ -180,22 +369,18 @@ paths:
       summary: Get job details
       tags:
       - Jobs
-    put:
+  /login:
+    post:
       consumes:
       - application/json
-      description: Company updates their job
+      description: Login with email and password
       parameters:
-      - description: Job ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Job info
+      - description: Login request
         in: body
-        name: job
+        name: loginRequest
         required: true
         schema:
-          $ref: '#/definitions/handler.jobRequest'
+          $ref: '#/definitions/handler.loginRequest'
       produces:
       - application/json
       responses:
@@ -207,7 +392,89 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/domain.BaseResponse'
-      summary: Update job
+      summary: Login with email and password
       tags:
-      - Jobs
+      - Auth
+  /protected:
+    get:
+      description: Validates JWT Bearer token and sets user_id and role (role name)
+        in context
+      responses:
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: JWT Authentication Middleware
+  /protected/{role}:
+    get:
+      description: Allows access only to users with the specified role name
+      parameters:
+      - description: Role (applicant or company)
+        in: path
+        name: role
+        required: true
+        type: string
+      responses:
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Role-based Access Middleware
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Register as a new user (company or applicant)
+      parameters:
+      - description: Signup request
+        in: body
+        name: signupRequest
+        required: true
+        schema:
+          $ref: '#/definitions/handler.signupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+      summary: Register as a new user (company or applicant)
+      tags:
+      - Auth
+  /user/me:
+    get:
+      consumes:
+      - application/json
+      description: Returns the authenticated user's profile (requires Bearer token)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.UserSwagger'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user profile
+      tags:
+      - User
+securityDefinitions:
+  BearerAuth:
+    description: 'Provide your JWT token in the format: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

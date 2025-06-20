@@ -9,31 +9,38 @@ import (
 	"github.com/yesetoda/Sera_Ale/internal/domain"
 	"github.com/yesetoda/Sera_Ale/internal/repository"
 	"github.com/yesetoda/Sera_Ale/internal/service"
+	"gorm.io/gorm"
 )
 
 type UserApp interface {
 	Signup(ctx context.Context, name, email, password, role string) (*domain.User, []string)
 	Login(ctx context.Context, email, password string) (*domain.User, string, []string)
+	GetByID(ctx context.Context, id string) (*domain.User, error)
 }
 
 type userApp struct {
 	repo     repository.UserRepository
 	jwt      service.JWTService
 	password service.PasswordService
+	orm      *gorm.DB
 }
 
 func NewUserApp(repo repository.UserRepository, jwt service.JWTService, password service.PasswordService) UserApp {
-	return &userApp{repo: repo, jwt: jwt, password: password}
+	return &userApp{repo: repo, jwt: jwt, password: password, orm: repo.GetDB()}
 }
 
-func (a *userApp) Signup(ctx context.Context, name, email, password, role string) (*domain.User, []string) {
-	errs := validateSignupInput(name, email, password, role)
-	if len(errs) > 0 {
-		return nil, errs
+func (a *userApp) Signup(ctx context.Context, name, email, password, roleName string) (*domain.User, []string) {
+	errMsgs := validateSignupInput(name, email, password, roleName)
+	if len(errMsgs) > 0 {
+		return nil, errMsgs
 	}
 	_, err := a.repo.FindByEmail(ctx, email)
 	if err == nil {
 		return nil, []string{"Email already exists"}
+	}
+	var role domain.Role
+	if err := a.orm.WithContext(ctx).Where("LOWER(name) = ?", strings.ToLower(roleName)).First(&role).Error; err != nil {
+		return nil, []string{"Role does not exist"}
 	}
 	hash, err := a.password.HashPassword(password)
 	if err != nil {
@@ -44,7 +51,8 @@ func (a *userApp) Signup(ctx context.Context, name, email, password, role string
 		Name:     name,
 		Email:    email,
 		Password: hash,
-		Role:     domain.UserRole(role),
+		RoleID:   role.ID,
+		Role:     role,
 	}
 	if err := a.repo.Create(ctx, user); err != nil {
 		return nil, []string{"Failed to create user"}
@@ -60,11 +68,15 @@ func (a *userApp) Login(ctx context.Context, email, password string) (*domain.Us
 	if err := a.password.ComparePassword(user.Password, password); err != nil {
 		return nil, "", []string{"Incorrect password"}
 	}
-	token, err := a.jwt.GenerateToken(user.ID.String(), string(user.Role))
+	token, err := a.jwt.GenerateToken(user.ID.String(), user.Role.Name)
 	if err != nil {
 		return nil, "", []string{"Failed to generate token"}
 	}
 	return user, token, nil
+}
+
+func (a *userApp) GetByID(ctx context.Context, id string) (*domain.User, error) {
+	return a.repo.FindByID(ctx, id)
 }
 
 func validateSignupInput(name, email, password, role string) []string {

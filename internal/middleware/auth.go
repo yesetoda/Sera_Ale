@@ -8,6 +8,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// AuthMiddleware godoc
+// @Summary JWT Authentication Middleware
+// @Description Validates JWT Bearer token and sets user_id and role (role name) in context
+// @Security BearerAuth
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Router /protected [get]
 func AuthMiddleware(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := c.GetHeader("Authorization")
@@ -34,6 +40,12 @@ func AuthMiddleware(secret string) gin.HandlerFunc {
 	}
 }
 
+// RequireRole godoc
+// @Summary Role-based Access Middleware
+// @Description Allows access only to users with the specified role name
+// @Param role path string true "Role (applicant or company)"
+// @Failure 403 {object} map[string]interface{} "Forbidden"
+// @Router /protected/{role} [get]
 func RequireRole(role string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.GetString("role") != role {
