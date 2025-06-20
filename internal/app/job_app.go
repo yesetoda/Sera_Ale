@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+
 	"github.com/yesetoda/Sera_Ale/internal/domain"
 	"github.com/yesetoda/Sera_Ale/internal/repository"
 )
@@ -52,4 +53,4 @@ func (a *jobApp) GetJobsByCompany(ctx context.Context, companyID string, page, s
 
 func (a *jobApp) SearchJobs(ctx context.Context, filters map[string]interface{}, page, size int) ([]domain.Job, int64, error) {
 	return a.repo.Search(ctx, filters, page, size)
-} 
+}

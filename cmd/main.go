@@ -12,6 +12,12 @@ import (
 	_ "github.com/swaggo/gin-swagger/example/docs"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"github.com/yesetoda/Sera_Ale/internal/app"
+	"github.com/yesetoda/Sera_Ale/internal/handler"
+	"github.com/yesetoda/Sera_Ale/internal/middleware"
+	"github.com/yesetoda/Sera_Ale/internal/repository"
+	"github.com/yesetoda/Sera_Ale/internal/service"
 )
 
 // @title Sera Ale Job Board API
@@ -35,6 +41,25 @@ func main() {
 	if err := sqlDB.Ping(); err != nil {
 		log.Fatal("failed to ping database: ", err)
 	}
+
+	// Dependency injection
+	userRepo := repository.NewUserRepository(db)
+	jobRepo := repository.NewJobRepository(db)
+	appRepo := repository.NewApplicationRepository(db)
+	jwtSvc := service.NewJWTService()
+	pwdSvc := service.NewPasswordService()
+	cloudSvc, err := service.NewCloudinaryService()
+	if err != nil {
+		log.Fatal("failed to init cloudinary: ", err)
+	}
+	userApp := app.NewUserApp(userRepo, jwtSvc, pwdSvc)
+	jobApp := app.NewJobApp(jobRepo)
+	appApp := app.NewApplicationApp(appRepo, jobRepo, cloudSvc)
+
+	userHandler := handler.NewUserHandler(userApp)
+	jobHandler := handler.NewJobHandler(jobApp)
+	appHandler := handler.NewApplicationHandler(appApp)
+
 	// Set up Gin
 	r := gin.Default()
 	// Swagger docs
@@ -43,6 +68,34 @@ func main() {
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
+
+	// Public routes
+	r.POST("/signup", userHandler.Signup)
+	r.POST("/login", userHandler.Login)
+
+	// Auth middleware
+	auth := middleware.AuthMiddleware(os.Getenv("JWT_SECRET"))
+
+	// Company routes
+	company := r.Group("/company", auth, middleware.RequireRole("company"))
+	company.POST("/jobs", jobHandler.CreateJob)
+	company.PUT("/jobs/:id", jobHandler.UpdateJob)
+	company.DELETE("/jobs/:id", jobHandler.DeleteJob)
+	company.GET("/jobs", jobHandler.GetJobsByCompany) // View my posted jobs
+	company.GET("/applications/job", appHandler.GetApplicationsForJob)
+	company.PUT("/applications/:id/status", appHandler.UpdateStatus)
+
+	// Applicant routes
+	applicant := r.Group("/applicant", auth, middleware.RequireRole("applicant"))
+	applicant.GET("/jobs", jobHandler.SearchJobs)
+	applicant.GET("/jobs/:id", jobHandler.GetJob)
+	applicant.POST("/applications", appHandler.Apply)
+	applicant.GET("/applications", appHandler.TrackApplications)
+
+	// Authenticated (any role)
+	authd := r.Group("/jobs", auth)
+	authd.GET(":id", jobHandler.GetJob)
+
 	fmt.Println("Server running on :8080")
 	r.Run(":8080")
 }
