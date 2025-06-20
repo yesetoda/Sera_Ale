@@ -24,7 +24,7 @@ import (
 // @title Sera Ale Job Board API
 // @version 1.0
 // @description RESTful API for job board with applicants and companies
-// @host localhost:8080
+// @host https://sera-ale-4.onrender.com
 // @BasePath /
 // @securityDefinitions.apikey BearerAuth
 // @in header
