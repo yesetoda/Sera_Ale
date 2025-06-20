@@ -1,0 +1,213 @@
+basePath: /
+definitions:
+  domain.BaseResponse:
+    properties:
+      errors:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+      object: {}
+      success:
+        type: boolean
+    type: object
+  domain.PaginatedResponse:
+    properties:
+      errors:
+        items:
+          type: string
+        type: array
+      message:
+        type: string
+      object: {}
+      page_number:
+        type: integer
+      page_size:
+        type: integer
+      success:
+        type: boolean
+      total_size:
+        type: integer
+    type: object
+  handler.jobRequest:
+    properties:
+      description:
+        type: string
+      location:
+        type: string
+      title:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: RESTful API for job board with applicants and companies
+  title: Sera Ale Job Board API
+  version: "1.0"
+paths:
+  /company/jobs:
+    get:
+      consumes:
+      - application/json
+      description: Company views their posted jobs
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PaginatedResponse'
+      summary: View my posted jobs
+      tags:
+      - Jobs
+  /jobs:
+    get:
+      consumes:
+      - application/json
+      description: Applicant searches jobs with filters and pagination
+      parameters:
+      - description: Title filter
+        in: query
+        name: title
+        type: string
+      - description: Location filter
+        in: query
+        name: location
+        type: string
+      - description: Company name filter
+        in: query
+        name: company_name
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PaginatedResponse'
+      summary: Search jobs
+      tags:
+      - Jobs
+    post:
+      consumes:
+      - application/json
+      description: Company posts a new job
+      parameters:
+      - description: Job info
+        in: body
+        name: job
+        required: true
+        schema:
+          $ref: '#/definitions/handler.jobRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+      summary: Create job
+      tags:
+      - Jobs
+  /jobs/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Company deletes their job
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+      summary: Delete job
+      tags:
+      - Jobs
+    get:
+      consumes:
+      - application/json
+      description: Get job details by ID
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+      summary: Get job details
+      tags:
+      - Jobs
+    put:
+      consumes:
+      - application/json
+      description: Company updates their job
+      parameters:
+      - description: Job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Job info
+        in: body
+        name: job
+        required: true
+        schema:
+          $ref: '#/definitions/handler.jobRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.BaseResponse'
+      summary: Update job
+      tags:
+      - Jobs
+swagger: "2.0"

@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	gsfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	_ "github.com/swaggo/gin-swagger/example/docs"
+	_ "github.com/yesetoda/Sera_Ale/docs" // Swagger docs import
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
@@ -81,7 +81,7 @@ func main() {
 	company.POST("/jobs", jobHandler.CreateJob)
 	company.PUT("/jobs/:id", jobHandler.UpdateJob)
 	company.DELETE("/jobs/:id", jobHandler.DeleteJob)
-	company.GET("/jobs", jobHandler.GetJobsByCompany) // View my posted jobs
+	company.GET("/jobs", jobHandler.GetJobsByCompany)
 	company.GET("/applications/job", appHandler.GetApplicationsForJob)
 	company.PUT("/applications/:id/status", appHandler.UpdateStatus)
 

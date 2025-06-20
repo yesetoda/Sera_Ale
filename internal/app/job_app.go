@@ -2,10 +2,13 @@ package app
 
 import (
 	"context"
+	"errors"
 
 	"github.com/yesetoda/Sera_Ale/internal/domain"
 	"github.com/yesetoda/Sera_Ale/internal/repository"
 )
+
+var ErrUnauthorized = errors.New("Unauthorized access")
 
 type JobApp interface {
 	CreateJob(ctx context.Context, job *domain.Job) error
@@ -38,7 +41,7 @@ func (a *jobApp) DeleteJob(ctx context.Context, jobID string, userID string) err
 		return err
 	}
 	if job.CreatedBy.String() != userID {
-		return domain.ErrUnauthorized
+		return ErrUnauthorized
 	}
 	return a.repo.Delete(ctx, jobID)
 }

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/yesetoda/Sera_Ale/internal/app"
 	"github.com/yesetoda/Sera_Ale/internal/domain"
@@ -25,6 +26,8 @@ func NewUserHandler(app app.UserApp) *UserHandler {
 // @Success 200 {object} domain.BaseResponse
 // @Failure 400 {object} domain.BaseResponse
 // @Router /signup [post]
+// @Security None
+// No authentication required
 type signupRequest struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
@@ -56,6 +59,8 @@ func (h *UserHandler) Signup(c *gin.Context) {
 // @Success 200 {object} domain.BaseResponse
 // @Failure 400 {object} domain.BaseResponse
 // @Router /login [post]
+// @Security None
+// No authentication required
 type loginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -73,4 +78,4 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, domain.BaseResponse{Success: true, Message: "Login successful", Object: gin.H{"user": user, "token": token}})
-} 
+}

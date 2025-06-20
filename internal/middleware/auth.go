@@ -42,4 +42,4 @@ func RequireRole(role string) gin.HandlerFunc {
 		}
 		c.Next()
 	}
-} 
+}

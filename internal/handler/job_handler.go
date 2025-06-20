@@ -33,6 +33,7 @@ type jobRequest struct {
 // @Param job body jobRequest true "Job info"
 // @Success 200 {object} domain.BaseResponse
 // @Failure 400 {object} domain.BaseResponse
+// @Security BearerAuth
 // @Router /jobs [post]
 func (h *JobHandler) CreateJob(c *gin.Context) {
 	var req jobRequest
@@ -73,6 +74,7 @@ func (h *JobHandler) CreateJob(c *gin.Context) {
 // @Param job body jobRequest true "Job info"
 // @Success 200 {object} domain.BaseResponse
 // @Failure 400 {object} domain.BaseResponse
+// @Security BearerAuth
 // @Router /jobs/{id} [put]
 func (h *JobHandler) UpdateJob(c *gin.Context) {
 	id := c.Param("id")
@@ -110,6 +112,7 @@ func (h *JobHandler) UpdateJob(c *gin.Context) {
 // @Param id path string true "Job ID"
 // @Success 200 {object} domain.BaseResponse
 // @Failure 400 {object} domain.BaseResponse
+// @Security BearerAuth
 // @Router /jobs/{id} [delete]
 func (h *JobHandler) DeleteJob(c *gin.Context) {
 	id := c.Param("id")
@@ -130,7 +133,8 @@ func (h *JobHandler) DeleteJob(c *gin.Context) {
 // @Param id path string true "Job ID"
 // @Success 200 {object} domain.BaseResponse
 // @Failure 404 {object} domain.BaseResponse
-// @Router /jobs/{id} [get]
+// @Security BearerAuth
+// @Router /applicant/jobs/{id} [get]
 func (h *JobHandler) GetJob(c *gin.Context) {
 	id := c.Param("id")
 	job, err := h.App.GetJobByID(c.Request.Context(), id)
@@ -153,7 +157,8 @@ func (h *JobHandler) GetJob(c *gin.Context) {
 // @Param page query int false "Page number"
 // @Param size query int false "Page size"
 // @Success 200 {object} domain.PaginatedResponse
-// @Router /jobs [get]
+// @Security BearerAuth
+// @Router /applicant/jobs [get]
 func (h *JobHandler) SearchJobs(c *gin.Context) {
 	filters := map[string]interface{}{}
 	if title := c.Query("title"); title != "" {
@@ -170,6 +175,36 @@ func (h *JobHandler) SearchJobs(c *gin.Context) {
 	jobs, total, err := h.App.SearchJobs(c.Request.Context(), filters, page, size)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, domain.PaginatedResponse{Success: false, Message: "Failed to search jobs"})
+		return
+	}
+	c.JSON(http.StatusOK, domain.PaginatedResponse{
+		Success:    true,
+		Message:    "Jobs found",
+		Object:     jobs,
+		PageNumber: page,
+		PageSize:   size,
+		TotalSize:  int(total),
+	})
+}
+
+// GetJobsByCompany godoc
+// @Summary View my posted jobs
+// @Description Company views their posted jobs
+// @Tags Jobs
+// @Accept json
+// @Produce json
+// @Param page query int false "Page number"
+// @Param size query int false "Page size"
+// @Success 200 {object} domain.PaginatedResponse
+// @Security BearerAuth
+// @Router /company/jobs [get]
+func (h *JobHandler) GetJobsByCompany(c *gin.Context) {
+	companyID := c.GetString("user_id")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+	jobs, total, err := h.App.GetJobsByCompany(c.Request.Context(), companyID, page, size)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, domain.PaginatedResponse{Success: false, Message: "Failed to fetch jobs"})
 		return
 	}
 	c.JSON(http.StatusOK, domain.PaginatedResponse{
